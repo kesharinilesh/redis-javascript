@@ -7,7 +7,7 @@ const server = net.createServer();
 server.on("connection", (socket) => {
   socket.on("data", (data) => {
     
-    let { commandName, key, value } = parseData(data);
+    let { commandName, key, value ,px} = parseData(data);
     switch(commandName){
 			case "echo":
 				commandMessage = key;
@@ -15,10 +15,14 @@ server.on("connection", (socket) => {
 			case "set":
 				DATASTORE.set(key, value);
 				commandMessage = 'OK';
+        if (px) setTimeout(() => DATASTORE.delete(key), px);
 				break;
 			case "get":
 				let storeValue = DATASTORE.get(key);
-				commandMessage = !storeValue ? null : storeValue;
+        if(!storeValue){
+					return socket.write(`$-1\r\n`);
+				}
+				commandMessage = storeValue;
 				break;
 		}
     
@@ -30,7 +34,8 @@ const parseData = (request) => {
   let commandName = data[2];
   let key = data[4];
   let value = data[6];
-	return { commandName, key, value }
+  let px = data[10];
+	return { commandName, key, value,px }
 };
 
 server.listen(6379, "127.0.0.1");
